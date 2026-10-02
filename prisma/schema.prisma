@@ -1,0 +1,535 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id String @id @default(cuid())
+  discordId String @unique
+  username String
+  avatar String?
+  robloxId String? @unique
+  robloxUsername String?
+  createdAt DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+  disabled Boolean @default(false)
+  notificationPreferences Json @default("{}")
+  accounts LinkedAccount[]
+  authSessions AuthSession[]
+  roles UserRole[]
+  departments DepartmentMember[]
+  submissions ApplicationSubmission[]
+  moderations Moderation[] @relation("Subject")
+  issuedModerations Moderation[] @relation("Moderator")
+  appeals Appeal[]
+  reports Report[]
+  hostedSessions Session[]
+  attendance SessionAttendance[]
+  priorities PriorityRequest[]
+  economy EconomyAccount?
+  memberships UserMembership[]
+  notifications Notification[]
+  characters CADCharacter[]
+  units CADUnit[]
+  auditLogs AuditLog[]
+}
+model LinkedAccount {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider String
+  providerId String
+  verifiedAt DateTime @default(now())
+  @@unique([provider, providerId])
+  @@unique([userId, provider])
+}
+model AuthSession {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+model Role {
+  id String @id @default(cuid())
+  name String @unique
+  permissions String[]
+  position Int @default(0)
+  discordRoleId String?
+  users UserRole[]
+}
+model UserRole {
+  userId String
+  roleId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  @@id([userId, roleId])
+}
+model Community {
+  id String @id @default("community")
+  name String @default("Florida State Roleplay")
+  abbreviation String @default("FSRP")
+  description String @default("Roleplay like no other.")
+  logo String @default("/brand/logo.gif")
+  banner String @default("/brand/dashboard.png")
+  accent String @default("#5261ff")
+  discordInvite String @default("https://discord.gg/fsrp")
+  robloxGroupUrl String @default("https://www.roblox.com/communities/1082694446")
+  serverUrl String?
+  schedule String @default("Daily around 11:30 AM. Check Discord for updates.")
+  timezone String @default("America/New_York")
+  settings Json @default("{}")
+  setupComplete Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+model Department {
+  id String @id @default(cuid())
+  name String @unique
+  abbreviation String @unique
+  description String
+  logo String?
+  discordInvite String?
+  handbook String @default("")
+  callsignFormat String @default("1A-###")
+  activityRequirements String @default("")
+  applicationsOpen Boolean @default(true)
+  discordRoleId String?
+  ranks DepartmentRank[]
+  members DepartmentMember[]
+  divisions Division[]
+  applications Application[]
+  @@index([abbreviation])
+}
+model DepartmentRank {
+  id String @id @default(cuid())
+  departmentId String
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name String
+  position Int
+  permissions String[]
+  discordRoleId String?
+  members DepartmentMember[]
+  @@unique([departmentId, name])
+}
+model Division {
+  id String @id @default(cuid())
+  departmentId String
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name String
+  description String @default("")
+  @@unique([departmentId, name])
+}
+model DepartmentMember {
+  id String @id @default(cuid())
+  userId String
+  departmentId String
+  rankId String?
+  user User @relation(fields: [userId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id])
+  rank DepartmentRank? @relation(fields: [rankId], references: [id])
+  callsign String?
+  status String @default("ACTIVE")
+  strikes Int @default(0)
+  suspensionUntil DateTime?
+  joinedAt DateTime @default(now())
+  @@unique([userId, departmentId])
+  @@unique([departmentId, callsign])
+}
+model Application {
+  id String @id @default(cuid())
+  title String
+  description String
+  departmentId String?
+  department Department? @relation(fields: [departmentId], references: [id])
+  kind String @default("DEPARTMENT")
+  status String @default("OPEN")
+  opensAt DateTime?
+  closesAt DateTime?
+  requiredRoles String[]
+  minimumAccountDays Int @default(0)
+  cooldownHours Int @default(24)
+  maximumSubmissions Int @default(3)
+  acceptedRoleId String?
+  questions ApplicationQuestion[]
+  submissions ApplicationSubmission[]
+  @@index([status])
+}
+model ApplicationQuestion {
+  id String @id @default(cuid())
+  applicationId String
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  label String
+  type String @default("LONG")
+  options String[]
+  required Boolean @default(true)
+  position Int @default(0)
+  answers ApplicationAnswer[]
+}
+model ApplicationSubmission {
+  id String @id @default(cuid())
+  applicationId String
+  application Application @relation(fields: [applicationId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  status String @default("PENDING")
+  reviewerId String?
+  decision String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  answers ApplicationAnswer[]
+  reviews ApplicationReview[]
+  @@index([userId, createdAt])
+  @@index([status])
+}
+model ApplicationAnswer {
+  id String @id @default(cuid())
+  submissionId String
+  submission ApplicationSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId String
+  question ApplicationQuestion @relation(fields: [questionId], references: [id])
+  value Json
+  @@unique([submissionId, questionId])
+}
+model ApplicationReview {
+  id String @id @default(cuid())
+  submissionId String
+  submission ApplicationSubmission @relation(fields: [submissionId], references: [id])
+  reviewerId String
+  status String
+  note String
+  score Int?
+  createdAt DateTime @default(now())
+}
+model Moderation {
+  id String @id @default(cuid())
+  number Int @unique @default(autoincrement())
+  userId String
+  user User @relation("Subject", fields: [userId], references: [id])
+  moderatorId String
+  moderator User @relation("Moderator", fields: [moderatorId], references: [id])
+  type String
+  reason String
+  evidence String[]
+  internalNotes String @default("")
+  expiresAt DateTime?
+  status String @default("ACTIVE")
+  sessionId String?
+  session Session? @relation(fields: [sessionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  appeals Appeal[]
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+}
+model Appeal {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  moderationId String
+  moderation Moderation @relation(fields: [moderationId], references: [id])
+  reason String
+  account String
+  improvements String
+  evidence String[]
+  status String @default("PENDING")
+  reviewerId String?
+  decision String?
+  createdAt DateTime @default(now())
+  actions AppealAction[]
+  @@index([status])
+}
+model AppealAction {
+  id String @id @default(cuid())
+  appealId String
+  appeal Appeal @relation(fields: [appealId], references: [id])
+  actorId String
+  action String
+  note String
+  createdAt DateTime @default(now())
+}
+model Report {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  reportedUser String
+  category String
+  description String
+  evidence String[]
+  sessionId String?
+  session Session? @relation(fields: [sessionId], references: [id])
+  status String @default("OPEN")
+  claimedById String?
+  resolution String?
+  createdAt DateTime @default(now())
+  @@index([status, createdAt])
+}
+model Session {
+  id String @id @default(cuid())
+  title String
+  hostId String
+  host User @relation(fields: [hostId], references: [id])
+  cohostIds String[]
+  startsAt DateTime
+  endsAt DateTime?
+  status String @default("SCHEDULED")
+  serverUrl String?
+  serverCode String?
+  playerCount Int @default(0)
+  maxPlayers Int @default(40)
+  priorityStatus String @default("AVAILABLE")
+  peacetime Boolean @default(false)
+  notes String @default("")
+  attendance SessionAttendance[]
+  priorities PriorityRequest[]
+  moderations Moderation[]
+  reports Report[]
+  @@index([status, startsAt])
+}
+model SessionAttendance {
+  id String @id @default(cuid())
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
+  leftAt DateTime?
+  minutes Int @default(0)
+  department String?
+  role String @default("Civilian")
+  @@unique([sessionId, userId])
+}
+model PriorityRequest {
+  id String @id @default(cuid())
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  type String
+  participants String[]
+  description String
+  duration Int
+  status String @default("REQUESTED")
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([sessionId, status])
+}
+model EconomyAccount {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+  balance BigInt @default(0)
+  transactions EconomyTransaction[]
+}
+model EconomyTransaction {
+  id String @id @default(cuid())
+  accountId String
+  account EconomyAccount @relation(fields: [accountId], references: [id])
+  amount BigInt
+  type String
+  reason String
+  createdById String
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  @@index([accountId, createdAt])
+}
+model Membership {
+  id String @id @default(cuid())
+  name String @unique
+  benefits String[]
+  discordRoleId String?
+  position Int @default(0)
+  users UserMembership[]
+}
+model UserMembership {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  membershipId String
+  membership Membership @relation(fields: [membershipId], references: [id])
+  expiresAt DateTime?
+  @@unique([userId, membershipId])
+}
+model ShopProduct {
+  id String @id @default(cuid())
+  name String
+  description String
+  category String
+  image String?
+  price String @default("See Roblox")
+  purchaseUrl String
+  available Boolean @default(true)
+  position Int @default(0)
+}
+model Rule {
+  id String @id @default(cuid())
+  title String
+  description String
+  category String
+  examples String @default("")
+  punishment String @default("")
+  position Int @default(0)
+}
+model RestrictedItem {
+  id String @id @default(cuid())
+  name String
+  category String
+  restriction String
+  requiredRole String
+  notes String @default("")
+}
+model Announcement {
+  id String @id @default(cuid())
+  title String
+  body String
+  authorId String
+  category String @default("COMMUNITY")
+  pinned Boolean @default(false)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String
+  body String
+  href String
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, readAt])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String?
+  actor User? @relation(fields: [actorId], references: [id])
+  action String
+  target String
+  before Json?
+  after Json?
+  createdAt DateTime @default(now())
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+model RateLimit {
+  key String @id
+  count Int @default(1)
+  window DateTime
+}
+model Outbox {
+  id String @id @default(cuid())
+  type String
+  payload Json
+  attempts Int @default(0)
+  sentAt DateTime?
+  availableAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  @@index([sentAt, availableAt])
+}
+model CADCharacter {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  firstName String
+  lastName String
+  birthDate DateTime
+  gender String
+  address String
+  phone String
+  occupation String
+  notes String @default("")
+  vehicles CADVehicle[]
+  licenses CADLicense[]
+  citations CADCitation[]
+  arrests CADArrest[]
+  warrants CADWarrant[]
+  @@index([lastName, firstName])
+}
+model CADVehicle {
+  id String @id @default(cuid())
+  characterId String
+  character CADCharacter @relation(fields: [characterId], references: [id])
+  plate String @unique
+  model String
+  color String
+  registrationStatus String @default("VALID")
+}
+model CADLicense {
+  id String @id @default(cuid())
+  characterId String
+  character CADCharacter @relation(fields: [characterId], references: [id])
+  type String
+  status String @default("VALID")
+  expiresAt DateTime
+}
+model CADCitation {
+  id String @id @default(cuid())
+  characterId String
+  character CADCharacter @relation(fields: [characterId], references: [id])
+  officerId String
+  type String
+  reason String
+  fine Int @default(0)
+  createdAt DateTime @default(now())
+}
+model CADArrest {
+  id String @id @default(cuid())
+  characterId String
+  character CADCharacter @relation(fields: [characterId], references: [id])
+  officerId String
+  charges String
+  narrative String
+  createdAt DateTime @default(now())
+}
+model CADWarrant {
+  id String @id @default(cuid())
+  characterId String
+  character CADCharacter @relation(fields: [characterId], references: [id])
+  officerId String
+  reason String
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+}
+model CADBolo {
+  id String @id @default(cuid())
+  title String
+  description String
+  officerId String
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+}
+model CADCall {
+  id String @id @default(cuid())
+  title String
+  location String
+  description String
+  category String
+  priority Int @default(3)
+  status String @default("OPEN")
+  units CADUnit[]
+  incidents CADIncident[]
+  createdAt DateTime @default(now())
+}
+model CADUnit {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  callsign String @unique
+  service String
+  status String @default("10-8")
+  callId String?
+  call CADCall? @relation(fields: [callId], references: [id])
+  @@unique([userId, service])
+}
+model CADIncident {
+  id String @id @default(cuid())
+  callId String?
+  call CADCall? @relation(fields: [callId], references: [id])
+  authorId String
+  type String
+  narrative String
+  patientReport String?
+  transportStatus String?
+  createdAt DateTime @default(now())
+}
