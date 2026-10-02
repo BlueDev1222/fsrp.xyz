@@ -1,5 +1,15 @@
 # Deployment
 
+## Render preview from GitHub
+
+The root `render.yaml` connects `main` to a free Node web service and free PostgreSQL database in Virginia. Open https://dashboard.render.com/blueprint/new?repo=https://github.com/BlueDev1222/fsrp.xyz and apply it in the intended workspace. Subsequent successful GitHub checks trigger deployments. Generated secrets stay in Render. Migrations and the idempotent seed run before the web server starts; this startup strategy is for the single-instance preview only.
+
+Visitors can browse without an account. Application submission still uses Discord authentication. In the web service's Environment settings, add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` from your Discord application and allow `https://fsrp.xyz/api/auth/discord/callback` as a redirect. Add the optional Roblox and bot variables from `.env.example` only when enabling those integrations. Never commit credentials.
+
+After the Render service is healthy, open its Custom Domains settings and use the exact DNS target shown there to replace the GitHub Pages record for `fsrp.xyz` in Cloudflare. Follow Render's domain verification instructions and verify HTTPS before testing login. Pushing to GitHub alone does not change DNS or deploy this Blueprint.
+
+This is a preview configuration, not permanent production hosting: free PostgreSQL expires after 30 days and has no backups; free web services sleep when idle. Upgrade the database and configure backups before collecting real applications. This Blueprint does not create a paid maintenance worker or Discord bot. For full operations, add a supervised worker using `npm ci --include=dev && npm run db:generate` to build and `npm run worker` to start, with the same database URL. Configure the optional bot separately. See https://render.com/docs/free for current limits.
+
 ## Node.js host
 
 Use Node 24, a UTF-8 PostgreSQL database, HTTPS at a trusted reverse proxy, and a process manager. Set `APP_URL` to the canonical HTTPS origin. Do not expose PostgreSQL to the public internet.

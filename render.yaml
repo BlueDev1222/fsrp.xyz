@@ -1,0 +1,38 @@
+# Free preview: PostgreSQL expires after 30 days. Upgrade before collecting real applications.
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+services:
+  - type: web
+    name: fsrp-community
+    runtime: node
+    plan: free
+    region: virginia
+    repo: https://github.com/BlueDev1222/fsrp.xyz
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: npm ci --include=dev && npm run db:generate && npm run build
+    startCommand: npm run db:migrate && npm run db:seed && npm start
+    healthCheckPath: /api/health
+    domains:
+      - fsrp.xyz
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: APP_URL
+        value: https://fsrp.xyz
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fsrp-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SETUP_TOKEN
+        generateValue: true
+      - key: ROBLOX_GROUP_ID
+        value: "1082694446"
+databases:
+  - name: fsrp-db
+    plan: free
+    region: virginia
+    databaseName: fsrp
+    user: fsrp
+    ipAllowList: []

@@ -63,47 +63,51 @@ export async function Shell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="nav-label">YOUR WORKSPACE</div>
-        <nav aria-label="Workspace">
-          <Link href="/dashboard">
-            <Gauge size={18} />
-            My dashboard
-          </Link>
-          <Link href="/cad">
-            <Radio size={18} />
-            CAD / MDT
-          </Link>
-          <Link href="/dashboard/economy">
-            <Wallet size={18} />
-            Economy
-          </Link>
-          <Link href="/appeals">
-            <Gavel size={18} />
-            Appeals
-          </Link>
-          <Link href="/reports">
-            <LifeBuoy size={18} />
-            Support & reports
-          </Link>
-          {actor && (
-            <Link href="/dashboard/notifications">
-              <Bell size={18} />
-              Notifications
-            </Link>
-          )}
-          {can(actor, "viewStaff") && (
-            <Link href="/staff-panel">
-              <Shield size={18} />
-              Staff workspace
-            </Link>
-          )}
-          {can(actor, "manageCommunitySettings") && (
-            <Link href="/admin">
-              <Settings size={18} />
-              Administration
-            </Link>
-          )}
-        </nav>
+        {user && (
+          <>
+            <div className="nav-label">YOUR WORKSPACE</div>
+            <nav aria-label="Workspace">
+              <Link href="/dashboard">
+                <Gauge size={18} />
+                My dashboard
+              </Link>
+              <Link href="/cad">
+                <Radio size={18} />
+                CAD / MDT
+              </Link>
+              <Link href="/dashboard/economy">
+                <Wallet size={18} />
+                Economy
+              </Link>
+              <Link href="/appeals">
+                <Gavel size={18} />
+                Appeals
+              </Link>
+              <Link href="/reports">
+                <LifeBuoy size={18} />
+                Support & reports
+              </Link>
+              {actor && (
+                <Link href="/dashboard/notifications">
+                  <Bell size={18} />
+                  Notifications
+                </Link>
+              )}
+              {can(actor, "viewStaff") && (
+                <Link href="/staff-panel">
+                  <Shield size={18} />
+                  Staff workspace
+                </Link>
+              )}
+              {can(actor, "manageCommunitySettings") && (
+                <Link href="/admin">
+                  <Settings size={18} />
+                  Administration
+                </Link>
+              )}
+            </nav>
+          </>
+        )}
         <div className="sidebar-bottom">
           <div className="discord-card">
             <strong>A community beyond the game.</strong>
@@ -136,8 +140,8 @@ export async function Shell({ children }: { children: ReactNode }) {
                 {user.username}
               </Link>
             ) : (
-              <Link href="/login" className="button small">
-                Sign in with Discord
+              <Link href="/applications" className="button small">
+                Explore applications
               </Link>
             )}
           </div>
